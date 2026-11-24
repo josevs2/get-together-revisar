@@ -1,189 +1,182 @@
 package com.example.gettogether.ui
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.gettogether.model.TiposEvento
+import com.example.gettogether.model.EventoDto
 import com.example.gettogether.viewmodel.CrearEventoViewModel
+import com.example.gettogether.viewmodel.EventoViewModel
+import com.example.gettogether.viewmodel.UsuarioViewModel
 
-/**
- * Pantalla "Crear" del mockup: nombre del evento, adjuntar imágenes + vista previa,
- * descripción, ubicación, etiquetas y edad.
- */
 @Composable
 fun CrearEvento(
-    viewModel: CrearEventoViewModel,
-    onVolver: () -> Unit,
-    onCreado: (Int) -> Unit
+    crearEventoViewModel: CrearEventoViewModel,
+    eventoViewModel: EventoViewModel,
+    usuarioViewModel: UsuarioViewModel,
+    onVolver: () -> Unit
 ) {
-    val form by viewModel.form.collectAsState()
-    val errores by viewModel.errores.collectAsState()
-    val mostrar by viewModel.mostrarErrores.collectAsState()
-    var eventoCreadoId by remember { mutableStateOf<Int?>(null) }
+    val authState by usuarioViewModel.uiState.collectAsState()
+    val usuarioActual = authState.usuarioActual
 
-    // Selector de fotos del sistema (no necesita permisos)
-    val selectorImagenes = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(CrearEventoViewModel.MAX_IMAGENES)
-    ) { uris -> viewModel.agregarImagenes(uris.map { it.toString() }) }
+    var titulo by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
+    var categoria by remember { mutableStateOf("Deportes") }
+    var fecha by remember { mutableStateOf("2026-11-30") }
+    var hora by remember { mutableStateOf("19:00") }
+    var ubicacion by remember { mutableStateOf("") }
+    var cupoTexto by remember { mutableStateOf("10") }
+    var imagenUri by remember { mutableStateOf<String?>(null) }
 
-    Column(Modifier.fillMaxSize()) {
-        BarraSuperior("Crear Evento", onVolver = onVolver)
+    var publicando by remember { mutableStateOf(false) }
+    var errorFormulario by remember { mutableStateOf<String?>(null) }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(PaddingPantalla),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            CampoTexto(form.nombre, viewModel::onNombreChange, "Nombre del evento",
-                error = errores.nombre, mostrarError = mostrar)
-
-            // ----- Adjuntar imágenes / Imágenes -----
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedCard(
-                    onClick = {
-                        selectorImagenes.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    modifier = Modifier.size(width = 110.dp, height = 90.dp)
-                ) {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = null)
-                        Text("Adjuntar\nimágenes", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-                if (form.imagenes.isEmpty()) {
-                    PlaceholderImagen("Imágenes", Modifier.weight(1f).height(90.dp))
-                } else {
-                    LazyRow(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(form.imagenes) { uri ->
-                            Box {
-                                ImagenUri(uri, Modifier.size(90.dp).clip(RoundedCornerShape(12.dp)))
-                                FilledTonalIconButton(
-                                    onClick = { viewModel.quitarImagen(uri) },
-                                    modifier = Modifier.align(Alignment.TopEnd).size(28.dp)
-                                ) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Quitar", Modifier.size(16.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            Text(
-                "${form.imagenes.size}/${CrearEventoViewModel.MAX_IMAGENES} imágenes",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // ----- Tipo -----
-            TituloSeccion("Tipo de evento")
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(TiposEvento.lista) { tipo ->
-                    FilterChip(
-                        selected = form.tipo == tipo,
-                        onClick = { viewModel.onTipoChange(tipo) },
-                        label = { Text(tipo) }
-                    )
-                }
-            }
-            if (mostrar) TextoError(errores.tipo)
-
-            Spacer(Modifier.height(4.dp))
-            CampoTexto(form.descripcion, viewModel::onDescripcionChange, "Añadir descripción",
-                error = errores.descripcion, mostrarError = mostrar, lineasMinimas = 3)
-            CampoTexto(form.ubicacion, viewModel::onUbicacionChange, "Añadir ubicación",
-                error = errores.ubicacion, mostrarError = mostrar, icono = Icons.Filled.LocationOn)
-            CampoTexto(form.etiquetas, viewModel::onEtiquetasChange, "Añadir etiquetas (separadas por coma)")
-            FilaEtiquetas(
-                form.etiquetas.split(",").map { it.trim().removePrefix("#") }.filter { it.isNotEmpty() }
-            )
-
-            // ----- Edad -----
-            TituloSeccion("Añadir edad")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CampoTexto(form.edadMinima, viewModel::onEdadMinimaChange, "Edad mínima",
-                    modifier = Modifier.weight(1f), tipoTeclado = KeyboardType.Number)
-                CampoTexto(form.edadMaxima, viewModel::onEdadMaximaChange, "Edad máxima",
-                    modifier = Modifier.weight(1f), tipoTeclado = KeyboardType.Number)
-            }
-            if (mostrar) TextoError(errores.edad)
-
-            CampoTexto(form.cupo, viewModel::onCupoChange, "Cupo de asistentes",
-                error = errores.cupo, mostrarError = mostrar, tipoTeclado = KeyboardType.Number)
-
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = { viewModel.crearEvento()?.let { eventoCreadoId = it.id } },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) {
-                Text("Crear evento")
-            }
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-
-    eventoCreadoId?.let { id ->
-        AlertDialog(
-            onDismissRequest = { },
-            title = { Text("¡Evento creado!") },
-            text = { Text("Tu evento ya está publicado y aparece en tu Bandeja.") },
-            confirmButton = {
-                Button(onClick = {
-                    eventoCreadoId = null
-                    onCreado(id)
-                }) { Text("Ver evento") }
-            }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Nuevo Evento",
+            style = MaterialTheme.typography.headlineSmall
         )
+
+        OutlinedTextField(
+            value = titulo,
+            onValueChange = { titulo = it },
+            label = { Text("Título del evento") },
+            singleLine = true,
+            enabled = !publicando,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = descripcion,
+            onValueChange = { descripcion = it },
+            label = { Text("Descripción") },
+            enabled = !publicando,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = categoria,
+            onValueChange = { categoria = it },
+            label = { Text("Categoría (Deportes, Juegos, Música...)") },
+            singleLine = true,
+            enabled = !publicando,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedTextField(
+                value = fecha,
+                onValueChange = { fecha = it },
+                label = { Text("Fecha (AAAA-MM-DD)") },
+                singleLine = true,
+                enabled = !publicando,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = hora,
+                onValueChange = { hora = it },
+                label = { Text("Hora (HH:MM)") },
+                singleLine = true,
+                enabled = !publicando,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        OutlinedTextField(
+            value = ubicacion,
+            onValueChange = { ubicacion = it },
+            label = { Text("Ubicación") },
+            singleLine = true,
+            enabled = !publicando,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = cupoTexto,
+            onValueChange = { cupoTexto = it.filter { ch -> ch.isDigit() } },
+            label = { Text("Cupo máximo") },
+            singleLine = true,
+            enabled = !publicando,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        errorFormulario?.let { msg ->
+            Text(
+                text = msg,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                val cupo = cupoTexto.toIntOrNull() ?: 0
+                if (titulo.isBlank() || ubicacion.isBlank() || cupo <= 0) {
+                    errorFormulario = "Completa título, ubicación y un cupo mayor a 0"
+                    return@Button
+                }
+
+                errorFormulario = null
+                publicando = true
+
+                val nuevoDto = EventoDto(
+                    titulo = titulo.trim(),
+                    descripcion = descripcion.trim(),
+                    categoria = categoria.trim(),
+                    fecha = fecha.trim(),
+                    hora = hora.trim(),
+                    ubicacion = ubicacion.trim(),
+                    cupoMaximo = cupo,
+                    imagenUrl = imagenUri,
+                    creadorId = usuarioActual?.id ?: 1
+                )
+
+                crearEventoViewModel.guardarEventoEnXano(
+                    dto = nuevoDto,
+                    onEventoCreado = {
+                        publicando = false
+                        eventoViewModel.cargarEventos()
+                        onVolver()
+                    },
+                    onError = { mensajeError ->
+                        publicando = false
+                        errorFormulario = mensajeError
+                    }
+                )
+            },
+            enabled = !publicando,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            if (publicando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Publicar Evento")
+            }
+        }
+
+        OutlinedButton(
+            onClick = onVolver,
+            enabled = !publicando,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Cancelar")
+        }
     }
 }

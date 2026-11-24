@@ -28,9 +28,9 @@ class UsuarioViewModel(private val repository: UsuarioRepository = UsuarioReposi
         initialValue = null
     )
 
-    fun loginSimulado(correo: String, nombre: String) {
+    fun loginSimulado(correo: String, password: String) {
         viewModelScope.launch {
-            repository.iniciarSesion(correo, nombre)
+            repository.loginRemoto(correo, password)
         }
     }
 

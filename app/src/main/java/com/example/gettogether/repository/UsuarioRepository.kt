@@ -4,87 +4,147 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.gettogether.model.Ajustes
+import com.example.gettogether.model.LoginRequest
 import com.example.gettogether.model.Usuario
-import com.example.gettogether.model.UsuarioDao
+import com.example.gettogether.model.UsuarioDto
 import com.example.gettogether.model.UsuarioEntity
+import com.example.gettogether.service.UsuarioApi
+import com.example.gettogether.service.XanoRetrofit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
-class UsuarioRepository(private val usuarioDao: UsuarioDao? = null) {
+class UsuarioRepository(private val api: UsuarioApi = XanoRetrofit.usuarioApi) {
 
-    // =========================================================
-    // 1. SESIÓN CON ROOM (opcional: solo funciona si se entrega un dao)
-    // =========================================================
-    val usuarioActivo: Flow<UsuarioEntity?> = usuarioDao?.obtenerUsuarioActivo() ?: flowOf(null)
+    private var _usuarioActual by mutableStateOf<Usuario?>(null)
+    val usuarioActual: Usuario? get() = _usuarioActual
 
-    suspend fun iniciarSesion(correo: String, nombre: String) {
-        usuarioDao?.guardarSesion(UsuarioEntity(correo = correo, nombre = nombre))
+    private var _ajustes by mutableStateOf(Ajustes())
+    val ajustes: Ajustes get() = _ajustes
+
+    private val usuariosRegistrados = mutableListOf(
+        Usuario(
+            nombre = "Usuario Demo",
+            nombreUsuario = "demo",
+            correo = "demo@gettogether.com",
+            password = "password123",
+            edad = 25
+        )
+    )
+
+    val usuarioActivo: Flow<UsuarioEntity?> = flowOf(null)
+
+    fun login(correo: String, pass: String): Boolean {
+        val encontrado = usuariosRegistrados.find { it.correo.equals(correo, true) && it.password == pass }
+        if (encontrado != null) {
+            _usuarioActual = encontrado
+            return true
+        }
+        return false
     }
 
-    suspend fun cerrarSesion() {
-        Companion.usuarioActual = null
-        usuarioDao?.cerrarSesion()
+    fun registrar(usuario: Usuario) {
+        usuariosRegistrados.add(usuario)
+        _usuarioActual = usuario
     }
 
-    // =========================================================
-    // 2. USUARIOS EN MEMORIA (luego se reemplaza por el microservicio)
-    // =========================================================
-    var usuarioActual: Usuario?
-        get() = Companion.usuarioActual
-        set(value) { Companion.usuarioActual = value }
+    fun existeNombreUsuario(nombreUsuario: String): Boolean {
+        return usuariosRegistrados.any { it.nombreUsuario.equals(nombreUsuario, true) }
+    }
 
-    var ajustes: Ajustes
-        get() = Companion.ajustes
-        set(value) { Companion.ajustes = value }
+    fun existeCorreo(correo: String): Boolean {
+        return usuariosRegistrados.any { it.correo.equals(correo, true) }
+    }
+
+    fun actualizarPerfil(usuario: Usuario) {
+        _usuarioActual = usuario
+        val index = usuariosRegistrados.indexOfFirst { it.correo.equals(usuario.correo, true) }
+        if (index != -1) {
+            usuariosRegistrados[index] = usuario
+        }
+    }
+
+    fun actualizarAjustes(nuevosAjustes: Ajustes) {
+        _ajustes = nuevosAjustes
+    }
+
+    fun cerrarSesion() {
+        _usuarioActual = null
+    }
+
+    suspend fun loginRemoto(email: String, pass: String): Result<UsuarioDto> {
+        return try {
+            val response = api.login(LoginRequest(email, pass))
+            if (response.isSuccessful && response.body() != null) {
+                val dto = response.body()!!
+                _usuarioActual = Usuario(
+                    nombre = dto.nombre,
+                    nombreUsuario = dto.email.substringBefore("@"),
+                    correo = dto.email,
+                    telefono = dto.telefono ?: "",
+                    foto = dto.avatarUrl
+                )
+                Result.success(dto)
+            } else {
+                Result.failure(Exception("Error al iniciar sesión: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun registrarRemoto(nombre: String, email: String, pass: String, telefono: String?): Result<UsuarioDto> {
+        return try {
+            val dto = UsuarioDto(nombre = nombre, email = email, password = pass, telefono = telefono)
+            val response = api.registrarUsuario(dto)
+            if (response.isSuccessful && response.body() != null) {
+                val creado = response.body()!!
+                _usuarioActual = Usuario(
+                    nombre = creado.nombre,
+                    nombreUsuario = creado.email.substringBefore("@"),
+                    correo = creado.email,
+                    telefono = creado.telefono ?: "",
+                    foto = creado.avatarUrl
+                )
+                Result.success(creado)
+            } else {
+                Result.failure(Exception("Error al registrar: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun actualizarUsuarioRemoto(id: Int, nombre: String, telefono: String): Result<UsuarioDto> {
+        return try {
+            val response = api.actualizarUsuario(id, mapOf("nombre" to nombre, "telefono" to telefono))
+            if (response.isSuccessful && response.body() != null) {
+                val actualizado = response.body()!!
+                _usuarioActual = _usuarioActual?.copy(nombre = actualizado.nombre, telefono = actualizado.telefono ?: "")
+                Result.success(actualizado)
+            } else {
+                Result.failure(Exception("Error al actualizar: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     companion object {
-        var usuarioActual: Usuario? = null
+        private val defaultInstance = UsuarioRepository()
 
-        // mutableStateOf para que Compose redibuje los switches de Ajustes
-        var ajustes by mutableStateOf(Ajustes())
+        val usuarioActual: Usuario? get() = defaultInstance.usuarioActual
+        val ajustes: Ajustes get() = defaultInstance.ajustes
+        val usuarioActivo: Flow<UsuarioEntity?> get() = defaultInstance.usuarioActivo
 
-        // Usuarios registrados. "demo" ya está confirmado en los eventos 4, 5, 6 y 7.
-        private val usuarios = mutableListOf(
-            Usuario(
-                nombre = "Usuario Demo",
-                nombreUsuario = "demo",
-                correo = "demo@gettogether.cl",
-                password = "123456",
-                ubicacion = "Santiago",
-                edad = 25
-            )
-        )
-    }
-
-    /** Devuelve true y deja la sesión iniciada si el correo y la contraseña coinciden. */
-    fun login(correo: String, pass: String): Boolean {
-        val usuario = usuarios.find {
-            it.correo.equals(correo.trim(), ignoreCase = true) && it.password == pass
-        }
-        usuarioActual = usuario
-        return usuario != null
-    }
-
-    /** Guarda el usuario nuevo y deja la sesión iniciada. */
-    fun registrar(u: Usuario) {
-        usuarios.add(u)
-        usuarioActual = u
-    }
-
-    fun existeNombreUsuario(nombre: String): Boolean =
-        usuarios.any { it.nombreUsuario.equals(nombre.trim(), ignoreCase = true) }
-
-    fun existeCorreo(correo: String): Boolean =
-        usuarios.any { it.correo.equals(correo.trim(), ignoreCase = true) }
-
-    /** Actualiza el perfil en la sesión y en la lista (se busca por nombre de usuario, que no se edita). */
-    fun actualizarPerfil(u: Usuario) {
-        val i = usuarios.indexOfFirst { it.nombreUsuario == u.nombreUsuario }
-        if (i >= 0) usuarios[i] = u
-        usuarioActual = u
-    }
-
-    fun actualizarAjustes(a: Ajustes) {
-        ajustes = a
+        fun login(correo: String, pass: String): Boolean = defaultInstance.login(correo, pass)
+        fun registrar(usuario: Usuario) = defaultInstance.registrar(usuario)
+        fun existeNombreUsuario(nombreUsuario: String): Boolean = defaultInstance.existeNombreUsuario(nombreUsuario)
+        fun existeCorreo(correo: String): Boolean = defaultInstance.existeCorreo(correo)
+        fun actualizarPerfil(usuario: Usuario) = defaultInstance.actualizarPerfil(usuario)
+        fun actualizarAjustes(nuevosAjustes: Ajustes) = defaultInstance.actualizarAjustes(nuevosAjustes)
+        fun cerrarSesion() = defaultInstance.cerrarSesion()
+        suspend fun loginRemoto(email: String, pass: String) = defaultInstance.loginRemoto(email, pass)
+        suspend fun registrarRemoto(nombre: String, email: String, pass: String, telefono: String?) = defaultInstance.registrarRemoto(nombre, email, pass, telefono)
+        suspend fun actualizarUsuarioRemoto(id: Int, nombre: String, telefono: String) = defaultInstance.actualizarUsuarioRemoto(id, nombre, telefono)
     }
 }

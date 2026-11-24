@@ -21,7 +21,14 @@ data class Evento(
     val imagenesRes: List<Int> = emptyList(),       // Imágenes de res/drawable (R.drawable.xxx)
     val latitud: Double? = null,                    // Coordenadas para el mapa
     val longitud: Double? = null,
-    val creador: String = ""
+    val creador: String = "",
+    val creadorId: Int = 1,
+    val imagenUrl: String = "",
+    val cupoMaximo: Int = 20,
+    val titulo: String = "",
+    val fecha: String = "",
+    val hora: String = "",
+    val categoria: String = ""
 ) {
     val tieneCoordenadas: Boolean get() = latitud != null && longitud != null
 

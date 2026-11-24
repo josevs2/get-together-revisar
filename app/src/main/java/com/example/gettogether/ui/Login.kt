@@ -1,82 +1,109 @@
 package com.example.gettogether.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.gettogether.viewmodel.UsuarioViewModel
 
 @Composable
 fun Login(
-    viewModel: UsuarioViewModel,
-    onVolver: () -> Unit,
-    onIrARegistro: () -> Unit,
-    onIngresar: () -> Unit
+    usuarioViewModel: UsuarioViewModel,
+    onNavegarAInicio: () -> Unit,
+    onNavegarARegistro: () -> Unit
 ) {
-    val form by viewModel.login.collectAsState()
-    val error by viewModel.loginError.collectAsState()
+    val state by usuarioViewModel.uiState.collectAsState()
 
-    Column(Modifier.fillMaxSize()) {
-        BarraSuperior("Iniciar sesión", onVolver = onVolver)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            CampoTexto(
-                valor = form.correo,
-                onCambio = viewModel::onLoginCorreoChange,
-                etiqueta = "Correo",
-                tipoTeclado = KeyboardType.Email,
-                icono = Icons.Filled.Email
-            )
-            CampoTexto(
-                valor = form.password,
-                onCambio = viewModel::onLoginPasswordChange,
-                etiqueta = "Contraseña",
-                tipoTeclado = KeyboardType.Password,
-                esPassword = true,
-                icono = Icons.Filled.Lock
-            )
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = { if (viewModel.iniciarSesion()) onIngresar() },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) {
-                Text("Entrar")
-            }
-            TextButton(onClick = onIrARegistro) { Text("¿No tienes cuenta? Regístrate") }
+    // Navega a Inicio apenas Xano confirme el login y limpia el flag
+    LaunchedEffect(state.operacionExitosa) {
+        if (state.operacionExitosa) {
+            usuarioViewModel.limpiarEstadoNavegacion()
+            onNavegarAInicio()
+        }
+    }
 
-            Spacer(Modifier.height(24.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Iniciar Sesión",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Correo electrónico") },
+            singleLine = true,
+            enabled = !state.cargando,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Contraseña") },
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true,
+            enabled = !state.cargando,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Mensaje de error de Xano (credenciales inválidas o error de red)
+        state.error?.let { mensajeError ->
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                "Cuenta de prueba: demo@gettogether.cl / 123456",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = mensajeError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth()
             )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = { usuarioViewModel.login(email, password) },
+            enabled = !state.cargando,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+        ) {
+            if (state.cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Ingresar")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        TextButton(
+            onClick = {
+                usuarioViewModel.limpiarEstadoNavegacion()
+                onNavegarARegistro()
+            },
+            enabled = !state.cargando
+        ) {
+            Text("¿No tienes cuenta? Regístrate")
         }
     }
 }

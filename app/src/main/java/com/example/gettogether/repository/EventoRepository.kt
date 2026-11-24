@@ -5,9 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.gettogether.R
 import com.example.gettogether.model.Evento
+import com.example.gettogether.model.EventoDto
 import com.example.gettogether.model.EventoForm
 import com.example.gettogether.model.FiltrosBusqueda
 import com.example.gettogether.model.Mensaje
+import com.example.gettogether.service.XanoRetrofit
 
 /**
  * Fuente de datos de eventos (en memoria, igual que UsuarioRepository de basic-app).
@@ -46,7 +48,7 @@ object EventoRepository {
             cupo = form.cupo.toInt(),
             asistentes = listOf(creador),
             imagenes = form.imagenes,
-            creador = creador
+            creador = creador,
         )
         _eventos = listOf(evento) + _eventos
         return evento
@@ -91,15 +93,19 @@ object EventoRepository {
 
     private fun eventosIniciales() = listOf(
         Evento(
-            id = 1, nombre = "Pokemon Go", tipo = "Juegos",
+            id = 1,
+            nombre = "Pokemon Go",
+            tipo = "Juegos",
             descripcion = "Reunión pokemon incursiones. Traigan batería externa.",
-            ubicacion = "San Joaquín", referencia = "Metro Macul",
+            ubicacion = "San Joaquín",
+            referencia = "Metro Macul",
             etiquetas = listOf("pokemon", "incursiones", "juegos"),
-            cupo = 20, asistentes = listOf("juan", "luis", "sofia", "nicolas"),
-            latitud = -33.50931324626522, longitud = -70.58944158971403,
-            portadaRes = R.drawable.pokemon_portada,                       // tarjeta
-            imagenesRes = listOf(R.drawable.pokemon_1), // Ver info
-            creador = "juan"
+            asistentes = listOf("juan", "luis", "sofia", "nicolas"),
+            portadaRes = R.drawable.pokemon_portada,
+            imagenesRes = listOf(R.drawable.pokemon_1),
+            latitud = -33.50931324626522,
+            longitud = -70.58944158971403,                       // tarjeta
+            creador = "juan", // Ver info
         ),
         Evento(
             id = 2, nombre = "Pichanga de los jueves", tipo = "Deporte",
@@ -107,10 +113,10 @@ object EventoRepository {
             ubicacion = "Ñuñoa", referencia = "Estadio Nacional",
             etiquetas = listOf("futbol", "pichanga"),
             cupo = 14, asistentes = listOf("matias", "felipe", "diego"),
-            latitud = -33.464625017366615, longitud = -70.61078671991382,
-            portadaRes = R.drawable.pichanga_portada,                       // tarjeta
-            imagenesRes = listOf(R.drawable.pichanga_2), // Ver info
-            creador = "matias"
+            portadaRes = R.drawable.pichanga_portada, imagenesRes = listOf(R.drawable.pichanga_2),
+            latitud = -33.464625017366615,                       // tarjeta
+            longitud = -70.61078671991382, // Ver info
+            creador = "matias",
         ),
         Evento(
             id = 3, nombre = "Noche de juegos de mesa", tipo = "Juegos",
@@ -119,10 +125,10 @@ object EventoRepository {
             etiquetas = listOf("juegos de mesa", "catan"),
             edadMinima = 20, edadMaxima = 35, cupo = 8,
             asistentes = listOf("camila", "ignacio"),
-            latitud = -33.4282784176981, longitud = -70.6194141419454,
-            portadaRes = R.drawable.juegos_portada,                       // tarjeta
-            imagenesRes = listOf(R.drawable.juegos_1), // Ver info
-            creador = "camila"
+            portadaRes = R.drawable.juegos_portada, imagenesRes = listOf(R.drawable.juegos_1),
+            latitud = -33.4282784176981,                       // tarjeta
+            longitud = -70.6194141419454, // Ver info
+            creador = "camila",
         ),
         Evento(
             id = 4, nombre = "Trekking Cerro San Cristóbal", tipo = "Aire libre",
@@ -130,9 +136,9 @@ object EventoRepository {
             ubicacion = "Providencia", referencia = "Plaza Caupolicán",
             etiquetas = listOf("trekking", "cerro"),
             cupo = 15, asistentes = listOf("demo", "juan", "sofia"),
-            latitud =-33.43058920209797, longitud = -70.6357201938626,
-            imagenesRes = listOf(/* R.drawable.xxx */), // TODO: imágenes
-            creador = "sofia"
+            imagenesRes = listOf(/* R.drawable.xxx */), latitud =-33.43058920209797,
+            longitud = -70.6357201938626, // TODO: imágenes
+            creador = "sofia",
         ),
         Evento(
             id = 5, nombre = "Estudio para certamen", tipo = "Estudio",
@@ -140,9 +146,9 @@ object EventoRepository {
             ubicacion = "Santiago Centro", referencia = "Biblioteca Nacional",
             etiquetas = listOf("estudio", "kotlin"),
             cupo = 6, asistentes = listOf("demo", "luis"),
-            latitud = -33.44190000767134,  longitud = -70.64558334012956,
-            imagenesRes = listOf(/* R.drawable.xxx */), // TODO: imágenes
-            creador = "luis"
+            imagenesRes = listOf(/* R.drawable.xxx */), latitud = -33.44190000767134,
+            longitud = -70.64558334012956, // TODO: imágenes
+            creador = "luis",
         ),
         Evento(
             id = 6, nombre = "Tocata indie", tipo = "Música",
@@ -150,9 +156,9 @@ object EventoRepository {
             ubicacion = "Barrio Italia", referencia = "Metro Santa Isabel",
             etiquetas = listOf("musica", "tocata"),
             cupo = 40, asistentes = listOf("demo", "nicolas", "camila", "felipe"),
-            latitud = -33.44596797815986, longitud = -70.6256457717317,
-            imagenesRes = listOf(/* R.drawable.xxx */), // TODO: imágenes
-            creador = "nicolas"
+            imagenesRes = listOf(/* R.drawable.xxx */), latitud = -33.44596797815986,
+            longitud = -70.6256457717317, // TODO: imágenes
+            creador = "nicolas",
         ),
         Evento(
             id = 7, nombre = "Completada", tipo = "Comida",
@@ -160,9 +166,9 @@ object EventoRepository {
             ubicacion = "La Florida", referencia = "Mall Plaza Vespucio",
             etiquetas = listOf("comida", "completos"),
             cupo = 12, asistentes = listOf("demo", "diego"),
-            latitud = -33.51456411781995,  longitud = -70.59548656291403,
-            imagenesRes = listOf(/* R.drawable.xxx */), // TODO: imágenes
-            creador = "diego"
+            imagenesRes = listOf(/* R.drawable.xxx */), latitud = -33.51456411781995,
+            longitud = -70.59548656291403, // TODO: imágenes
+            creador = "diego",
         )
     )
 
@@ -180,5 +186,90 @@ object EventoRepository {
         5 to listOf(Mensaje("luis", "Traigan las guías del ramo")),
         6 to listOf(Mensaje("nicolas", "Abren puertas a las 21:00")),
         7 to listOf(Mensaje("diego", "Yo llevo el pan"))
+    )
+
+
+    suspend fun cargarEventosRemotos(): Result<List<EventoDto>> {
+        return try {
+            val response = XanoRetrofit.eventoApi.obtenerEventos()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error al obtener eventos: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun publicarEventoRemoto(nuevoEvento: EventoDto): Result<EventoDto> {
+        return try {
+            val response = XanoRetrofit.eventoApi.crearEvento(nuevoEvento)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error al crear evento: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun eliminarEventoRemoto(id: Int): Result<Unit> {
+        return try {
+            val response = XanoRetrofit.eventoApi.eliminarEvento(id)
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception("No se pudo eliminar: ${response.code()}"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Agrega estos métodos dentro de EventoRepository.kt
+
+    suspend fun obtenerEventoPorIdRemoto(id: Int): Result<EventoDto> {
+        return try {
+            val response = XanoRetrofit.eventoApi.obtenerEventoPorId(id)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Evento no encontrado (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun actualizarEventoRemoto(id: Int, evento: EventoDto): Result<EventoDto> {
+        return try {
+            val response = XanoRetrofit.eventoApi.actualizarEvento(id, evento)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error al actualizar evento (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+fun EventoDto.toDomain(): Evento {
+    return Evento(
+        id = this.id,
+        nombre = this.titulo,
+        tipo = this.categoria,
+        descripcion = this.descripcion,
+        ubicacion = this.ubicacion,
+        cupo = this.cupoMaximo,
+        latitud = this.latitud ?: -33.5227, // Coordenada por defecto si viene null
+        longitud = this.longitud ?: -70.5983,
+        cupoMaximo = this.cupoMaximo,
+        imagenUrl = this.imagenUrl.orEmpty(),
+        creadorId = this.creadorId,
+        titulo = this.titulo,
+        fecha = this.fecha,
+        hora = this.hora,
+        categoria = this.categoria
     )
 }
