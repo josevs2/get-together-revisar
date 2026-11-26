@@ -11,13 +11,87 @@ import com.example.gettogether.repository.UsuarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+data class UsuarioUiState(
+    val usuarioActual: Usuario? = null,
+    val cargando: Boolean = false,
+    val error: String? = null,
+    val operacionExitosa: Boolean = false
+)
 
 /** Lógica de Login, Registro, Cuenta y Ajustes. */
 class UsuarioViewModel(private val repository: UsuarioRepository = UsuarioRepository()) : ViewModel() {
 
     private val regexCorreo = Regex("^[\\w.-]+@[\\w.-]+\\.\\w+$")
+
+    private val _uiState = MutableStateFlow(UsuarioUiState())
+    val uiState: StateFlow<UsuarioUiState> = _uiState.asStateFlow()
+
+    fun login(email: String, pass: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(cargando = true, error = null, operacionExitosa = false)
+            val result = repository.loginRemoto(email, pass)
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    usuarioActual = repository.usuarioActual,
+                    operacionExitosa = true,
+                    error = null
+                )
+            } else {
+                if (repository.login(email, pass)) {
+                    _uiState.value = _uiState.value.copy(
+                        cargando = false,
+                        usuarioActual = repository.usuarioActual,
+                        operacionExitosa = true,
+                        error = null
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        cargando = false,
+                        error = result.exceptionOrNull()?.message ?: "Error al iniciar sesión"
+                    )
+                }
+            }
+        }
+    }
+
+    fun registrar(nombre: String, email: String, pass: String, telefono: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(cargando = true, error = null, operacionExitosa = false)
+            val result = repository.registrarRemoto(nombre, email, pass, telefono)
+            if (result.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    usuarioActual = repository.usuarioActual,
+                    operacionExitosa = true,
+                    error = null
+                )
+            } else {
+                val nuevoUsuario = Usuario(
+                    nombre = nombre.trim(),
+                    nombreUsuario = email.substringBefore("@"),
+                    correo = email.trim(),
+                    password = pass,
+                    telefono = telefono ?: ""
+                )
+                repository.registrar(nuevoUsuario)
+                _uiState.value = _uiState.value.copy(
+                    cargando = false,
+                    usuarioActual = repository.usuarioActual,
+                    operacionExitosa = true,
+                    error = null
+                )
+            }
+        }
+    }
+
+    fun limpiarEstadoNavegacion() {
+        _uiState.value = _uiState.value.copy(operacionExitosa = false, error = null)
+    }
 
     // =========================================================
     // NUEVA LÓGICA DE SESIÓN CON ROOM

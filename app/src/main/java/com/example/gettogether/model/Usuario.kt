@@ -1,6 +1,7 @@
 package com.example.gettogether.model
 
 data class Usuario(
+    val id: Int = 1,
     val nombre: String = "",
     val nombreUsuario: String = "",
     val correo: String = "",

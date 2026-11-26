@@ -99,19 +99,18 @@ fun Navegacion() {
             }
             composable(Rutas.LOGIN) {
                 Login(
-                    viewModel = usuarioViewModel,
-                    onVolver = { navController.popBackStack() },
-                    onIrARegistro = {
+                    usuarioViewModel = usuarioViewModel,
+                    onNavegarAInicio = { navController.entrarALaApp() },
+                    onNavegarARegistro = {
                         navController.navigate(Rutas.REGISTRO) { popUpTo(Rutas.LOGIN) { inclusive = true } }
-                    },
-                    onIngresar = { navController.entrarALaApp() }
+                    }
                 )
             }
             composable(Rutas.REGISTRO) {
                 Registro(
-                    viewModel = usuarioViewModel,
-                    onVolver = { navController.popBackStack() },
-                    onRegistrado = { navController.entrarALaApp() }
+                    usuarioViewModel = usuarioViewModel,
+                    onNavegarAInicio = { navController.entrarALaApp() },
+                    onVolverALogin = { navController.popBackStack() }
                 )
             }
             composable(Rutas.AYUDA) {
@@ -121,10 +120,9 @@ fun Navegacion() {
             // ----- App -----
             composable(Rutas.INICIO) {
                 Inicio(
-                    viewModel = eventoViewModel,
-                    onAjustes = { navController.navigate(Rutas.AJUSTES) },
-                    onCrear = { navController.navigate(Rutas.CREAR) },
-                    onVerInfo = { id -> navController.navigate(Rutas.info(id)) }
+                    eventoViewModel = eventoViewModel,
+                    onSeleccionarEvento = { evento -> navController.navigate(Rutas.detalle(evento.id)) },
+                    onIrACrearEvento = { navController.navigate(Rutas.CREAR) }
                 )
             }
             composable(Rutas.AJUSTES) {
@@ -142,20 +140,16 @@ fun Navegacion() {
             }
             composable(Rutas.CREAR) {
                 CrearEvento(
-                    viewModel = crearEventoViewModel,
-                    onVolver = { navController.popBackStack() },
-                    onCreado = { id ->
-                        navController.navigate(Rutas.detalle(id)) {
-                            popUpTo(Rutas.CREAR) { inclusive = true }
-                        }
-                    }
+                    crearEventoViewModel = crearEventoViewModel,
+                    eventoViewModel = eventoViewModel,
+                    usuarioViewModel = usuarioViewModel,
+                    onVolver = { navController.popBackStack() }
                 )
             }
             composable(Rutas.BUSCAR) {
                 Buscar(
-                    viewModel = buscarViewModel,
-                    onVolver = { navController.popBackStack() },
-                    onVerEvento = { id -> navController.navigate(Rutas.info(id)) }
+                    eventoViewModel = eventoViewModel,
+                    onSeleccionarEvento = { evento -> navController.navigate(Rutas.info(evento.id)) }
                 )
             }
             composable(Rutas.BANDEJA) {
@@ -176,12 +170,10 @@ fun Navegacion() {
             composable(Rutas.DETALLE, arguments = argumentoId) { entrada ->
                 val id = entrada.arguments?.getInt("id") ?: 0
                 DetalleEvento(
-                    id = id,
-                    viewModel = eventoViewModel,
-                    onVolver = { navController.popBackStack() },
-                    onChat = { navController.navigate(Rutas.chat(id)) },
-                    onAsistentes = { navController.navigate(Rutas.asistentes(id)) },
-                    onInformacion = { navController.navigate(Rutas.info(id)) }
+                    eventoId = id,
+                    eventoViewModel = eventoViewModel,
+                    usuarioViewModel = usuarioViewModel,
+                    onVolver = { navController.popBackStack() }
                 )
             }
             composable(Rutas.CHAT, arguments = argumentoId) { entrada ->
