@@ -1,5 +1,6 @@
 package com.example.gettogether.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gettogether.model.Evento
@@ -84,7 +85,9 @@ class EventoViewModel(private val repository: EventoRepository = EventoRepositor
                     _eventos.value = listaDto.map { it.toDomain() }
                 }
                 .onFailure { err ->
-                    _error.value = err.message ?: "Error al cargar eventos"
+                    // Si Xano no responde, se muestran los eventos de ejemplo para que la app siga funcionando
+                    Log.w("EventoViewModel", "No se pudieron cargar eventos de Xano", err)
+                    _eventos.value = EventoRepository.eventos
                 }
             _cargando.value = false
         }

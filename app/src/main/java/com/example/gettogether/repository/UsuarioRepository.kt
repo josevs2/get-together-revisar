@@ -130,8 +130,9 @@ class UsuarioRepository(private val api: UsuarioApi = XanoRetrofit.usuarioApi) {
     }
 
     companion object {
-        private val defaultInstance = UsuarioRepository()
 
+        val instancia: UsuarioRepository by lazy { UsuarioRepository() }
+        private val defaultInstance get() = instancia
         val usuarioActual: Usuario? get() = defaultInstance.usuarioActual
         val ajustes: Ajustes get() = defaultInstance.ajustes
         val usuarioActivo: Flow<UsuarioEntity?> get() = defaultInstance.usuarioActivo

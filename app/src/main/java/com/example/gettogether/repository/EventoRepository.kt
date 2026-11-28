@@ -17,7 +17,8 @@ import com.example.gettogether.service.XanoRetrofit
  */
 object EventoRepository {
 
-    private var _eventos by mutableStateOf(eventosIniciales())
+    // titulo/categoria = nombre/tipo, porque Buscar y Detalle muestran esos campos (vienen así desde Xano)
+    private var _eventos by mutableStateOf(eventosIniciales().map { it.copy(titulo = it.nombre, categoria = it.tipo) })
     val eventos: List<Evento> get() = _eventos
 
     private var _mensajes by mutableStateOf(mensajesIniciales())
@@ -49,6 +50,8 @@ object EventoRepository {
             asistentes = listOf(creador),
             imagenes = form.imagenes,
             creador = creador,
+            titulo = form.nombre.trim(),
+            categoria = form.tipo,
         )
         _eventos = listOf(evento) + _eventos
         return evento
@@ -77,13 +80,13 @@ object EventoRepository {
     fun buscar(f: FiltrosBusqueda): List<Evento> = _eventos.filter { e ->
         val etiqueta = f.etiqueta.trim().removePrefix("#")
         (f.texto.isBlank() || e.nombre.contains(f.texto.trim(), true) || e.descripcion.contains(f.texto.trim(), true)) &&
-            (f.ubicacion.isBlank() || e.ubicacion.contains(f.ubicacion.trim(), true) || e.referencia.contains(f.ubicacion.trim(), true)) &&
-            (f.tipo == null || e.tipo == f.tipo) &&
-            e.cupo <= f.cupoMaximo &&
-            e.asistentes.size >= f.minConfirmados.toInt() &&
-            // el rango del evento se cruza con el rango buscado
-            e.edadMinima <= f.edadHasta && e.edadMaxima >= f.edadDesde &&
-            (etiqueta.isEmpty() || e.etiquetas.any { it.contains(etiqueta, true) })
+                (f.ubicacion.isBlank() || e.ubicacion.contains(f.ubicacion.trim(), true) || e.referencia.contains(f.ubicacion.trim(), true)) &&
+                (f.tipo == null || e.tipo == f.tipo) &&
+                e.cupo <= f.cupoMaximo &&
+                e.asistentes.size >= f.minConfirmados.toInt() &&
+                // el rango del evento se cruza con el rango buscado
+                e.edadMinima <= f.edadHasta && e.edadMaxima >= f.edadDesde &&
+                (etiqueta.isEmpty() || e.etiquetas.any { it.contains(etiqueta, true) })
     }
 
     // ---------- Datos de ejemplo (sacados del mockup) ----------

@@ -122,7 +122,8 @@ fun Navegacion() {
                 Inicio(
                     eventoViewModel = eventoViewModel,
                     onSeleccionarEvento = { evento -> navController.navigate(Rutas.detalle(evento.id)) },
-                    onIrACrearEvento = { navController.navigate(Rutas.CREAR) }
+                    onIrACrearEvento = { navController.navigate(Rutas.CREAR) },
+                    onAjustes = { navController.navigate(Rutas.AJUSTES) }
                 )
             }
             composable(Rutas.AJUSTES) {

@@ -23,7 +23,7 @@ data class UsuarioUiState(
 )
 
 /** Lógica de Login, Registro, Cuenta y Ajustes. */
-class UsuarioViewModel(private val repository: UsuarioRepository = UsuarioRepository()) : ViewModel() {
+class UsuarioViewModel(private val repository: UsuarioRepository = UsuarioRepository.instancia) : ViewModel() {
 
     private val regexCorreo = Regex("^[\\w.-]+@[\\w.-]+\\.\\w+$")
 
